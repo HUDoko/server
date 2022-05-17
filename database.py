@@ -5,7 +5,7 @@ import sqlite3 as sql
 
 # получение последних 10(по умолчанию) измерений по всем кабинетам
 def get_all_cab_temp(count=10):
-    db_file = "C:\\Users\\tautp\\PycharmProjects\\FillDataBase\\weather.db"
+    db_file = "weather.db"
     conn = sql.connect(db_file)
     cursor = conn.cursor()
     cabinets = cursor.execute("SELECT DISTINCT cab_name FROM cabinets_tables;").fetchall()
