@@ -1,12 +1,13 @@
 import sqlite3 as sql
 
 
-
+def get_connection():
+    db_file = "C:\\Users\\tautp\\PycharmProjects\\FillDataBase\\weather.db"
+    return sql.connect(db_file)
 
 # получение последних 10(по умолчанию) измерений по всем кабинетам
 def get_all_cab_temp(count=10):
-    db_file = "weather.db"
-    conn = sql.connect(db_file)
+    conn = get_connection()
     cursor = conn.cursor()
     cabinets = cursor.execute("SELECT DISTINCT cab_name FROM cabinets_tables;").fetchall()
     tables = cursor.execute("SELECT table_name, type, cab_name FROM cabinets_tables;").fetchall()
@@ -41,6 +42,59 @@ def get_all_cab_temp(count=10):
 
     conn.close()
     return result
+
+#получить json для всех кабинетов за период времени
+def get_all_cab_temp_by_date(start_date = None, end_date = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    select = """
+    SELECT date_time,
+       "temp",      
+       type,
+       cab_name
+    FROM temperature    
+    LEFT JOIN  
+    cabinets on temperature.CAB_ID == cabinets.CAB_ID   
+    """
+
+    # Формирование Where для SQL-запроса
+    where = ""
+    if not (start_date is None):
+        where = f' WHERE date_time > "{start_date}" '
+        if not (end_date is None):
+            where += f' AND date_time < "{end_date}"'
+    else:
+        if not (end_date is None):
+            where += f' WHERE date_time < "{end_date}"'
+    select += where
+
+    order = "ORDER BY date_time;"
+    select += order
+    print(select)
+    sql_res = cursor.execute(select).fetchall()
+    result = {}
+    for row in sql_res:
+        if not result.keys().__contains__(row[3]):
+            result[row[3]] = {
+            'dates': [],
+            'temp':
+                {
+                    'wall': [],
+                    'bat': []
+                },
+            }
+        result[row[3]]['dates'].append(row[0])
+        result[row[3]]['temp'][row[2]].append(row[1])
+        result[row[3]]['temp'][not_wb(row[2])].append(None)
+
+    for key in result.keys():
+        result[key]['temp']['wall'] = avg_fill(result[key]['temp']['wall'])
+        result[key]['temp']['bat'] = avg_fill(result[key]['temp']['bat'])
+
+    return result
+
+
+
 
 
 def not_wb(str):
