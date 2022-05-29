@@ -2,7 +2,7 @@ import sqlite3 as sql
 
 
 def get_connection():
-    db_file = "C:\\Users\\tautp\\PycharmProjects\\FillDataBase\\weather.db"
+    db_file = "weather.db"
     return sql.connect(db_file)
 
 # получение последних 10(по умолчанию) измерений по всем кабинетам
@@ -95,8 +95,6 @@ def get_all_cab_temp_by_date(start_date = None, end_date = None):
 
 
 
-
-
 def not_wb(str):
     if str == "wall":
         return "bat"
@@ -129,3 +127,26 @@ def avg_fill(array):
                     array[j] = array[prev_i]
         i += 1
     return array
+
+
+def select_execute(select):
+    conn = get_connection()
+    cursor = conn.cursor()
+    return cursor.execute(select).fetchall()
+
+
+def insert_execute(insert):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(insert)
+
+
+def is_table_exist(table_name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    select = f"SELECT * FROM {table_name} LIMIT 1"
+    #try:
+    cursor.execute(select)
+    return True
+    #finally:
+    #    return False
