@@ -139,14 +139,16 @@ def insert_execute(insert):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(insert)
+    conn.commit()
 
 
 def is_table_exist(table_name):
     conn = get_connection()
     cursor = conn.cursor()
     select = f"SELECT * FROM {table_name} LIMIT 1"
-    #try:
-    cursor.execute(select)
-    return True
-    #finally:
-    #    return False
+    try:
+        cursor.execute(select)
+        return True
+    except:
+       return False
+
