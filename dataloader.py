@@ -1,6 +1,13 @@
 import database
 import DateConvertor as dc
 import SensorInfo as si
+import time
+
+
+def period_load(pause=5000):
+    while True:
+        load_sensor_info()
+        time.sleep(pause)
 
 
 def load_sensor_info():
@@ -14,21 +21,30 @@ def load_sensor_info():
          FROM cabinets;
         """
         cabinets = database.select_execute(select)
+        print(cabinets)
+        conn = database.get_connection()
+        cursor = conn.cursor()
 
         for cabinet in cabinets:
+            print(cabinet[0])
             select_last_date = f"SELECT date_time FROM temperature WHERE CAB_ID = {cabinet[0]} ORDER BY date_time desc LIMIT 1 "
             last_date = database.select_execute(select_last_date)
             new_data = si.get_sensor_info_from_url(cabinet[4])
             dc.df_add_datetime(new_data)
-            new_data = new_data.drop(labels=['date', 'time'], axis=1)
-            new_data = new_data[new_data['date_time'] > last_date[0][0]]
-            for index, row in new_data.iterrows():
-                insert = "INSERT INTO temperature  VALUES ('{}', {}, {});".format(row['date_time'], row['temp'], cabinet[0])
-                print(insert)
-                database.insert_execute(insert)
+            if not new_data.empty:
+                new_data = new_data.drop(labels=['date', 'time'], axis=1)
+                new_data = new_data[new_data['date_time'] > last_date[0][0]]
+                #print(new_data)
+                for index, row in new_data.iterrows():
+                    insert = "INSERT INTO temperature  VALUES ('{}', {}, {});".format(row['date_time'], row['temp'], cabinet[0])
+                    print(insert)
+                    cursor.execute(insert)
+                conn.commit()
+
     else:
         print("DB not found")
         fill_empty_database()
+    print("end_Load")
 
 
 def get_next_cab_id():
