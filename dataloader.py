@@ -4,7 +4,7 @@ import SensorInfo as si
 import time
 
 
-def period_load(pause=5000):
+def period_load(pause=120):
     while True:
         load_sensor_info()
         time.sleep(pause)

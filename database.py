@@ -5,6 +5,33 @@ def get_connection():
     db_file = "weather.db"
     return sql.connect(db_file)
 
+
+def get_cabinet_temp(room, start_date, end_date):
+    select = f"""
+    SELECT
+        date_time,
+        "temp" 
+    FROM 
+        temperature AS t LEFT JOIN cabinets AS c ON t.CAB_ID = c.CAB_ID 
+    WHERE
+        c.full_name = '{room}' 
+        AND date_time >= '{start_date}'
+        AND date_time <= '{end_date}'     
+    """
+    print(select)
+    answer = select_execute(select)
+
+    result = {
+        "dates": [],
+        "temp": []
+    }
+    for row in answer:
+        result['dates'].append(row[0])
+        result['temp'].append(row[1])
+    return result
+
+
+
 # получение последних 10(по умолчанию) измерений по всем кабинетам
 def get_all_cab_temp(count=10):
     conn = get_connection()

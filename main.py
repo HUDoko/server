@@ -9,9 +9,19 @@ import threading
 app = Flask(__name__)
 
 
-@app.route('/todo/api/v1.0/cabinets', methods=['GET'])
-def get_all_temps():
-    return jsonify(database.get_all_cab_temp())
+@app.route('/temp/cabinets/<string:room>&<string:start_date>&<string:end_date>', methods=['GET'])
+def get_cab_temps_se(room, start_date, end_date):
+    if len(room) == 0 or len(start_date) == 0 or len(end_date) == 0:
+        abort(404)
+    return jsonify(database.get_cabinet_temp(room, start_date, end_date))
+
+
+@app.route('/temp/cabinets/<string:room>&<string:start_date>', methods=['GET'])
+def get_cab_temps_s(room, start_date):
+    if len(room) == 0 or len(start_date) == 0:
+        abort(404)
+    end_date = datetime.datetime.now()
+    return jsonify(database.get_cabinet_temp(room, start_date, end_date))
 
 
 @app.route('/temp/cabinets', methods=['GET'])
