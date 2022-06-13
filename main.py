@@ -31,6 +31,7 @@ def get_temps_main():
 
 
 if __name__ == '__main__':
+    #dataloader.get_weather()
     threading.Thread(target=lambda: app.run(debug=True, use_reloader=False)).start()
     dataloader.period_load()
 

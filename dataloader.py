@@ -2,6 +2,8 @@ import database
 import DateConvertor as dc
 import SensorInfo as si
 import time
+import pandas as pd
+import weather_load as wi
 
 
 def period_load(pause=120):
@@ -113,4 +115,53 @@ def fill_empty_database():
         conn.commit()
     conn.close()
 
+
+def get_weather():
+    filepath="big_table.csv"
+    weather_table = pd.read_csv(filepath, parse_dates=["date_time"], sep=';', index_col="date_time")
+    weather_table = weather_table[['wind_dir', 'wind_speed', 'visibility',
+                                   'atm_phenomena', 'T', 'Td', 'f', 'Te', 'QNH', 'Po', 'COA', 'CULA',
+                                   'CLB', 'CT', 'altitude', 'azimuth']]
+
+    conn = database.get_connection()
+    cursor = conn.cursor()
+    Drop = "DROP TABLE IF EXISTS weather;"
+    Create = "CREATE TABLE IF NOT EXISTS weather(" \
+             "wind_dir INTEGER, " \
+             "wind_speed INTEGER," \
+             "visibility INTEGER , " \
+             "atm_phenomena TEXT , " \
+             "T INTEGER , " \
+             "Td INTEGER , " \
+             "f INTEGER, " \
+             "Te INTEGER, " \
+             "QNH INTEGER, " \
+             "Po INTEGER, " \
+             "COA INTEGER, " \
+             "CULA INTEGER, " \
+             "CLB INTEGER, " \
+             "CT INTEGER, " \
+             "altitude REAL, " \
+             "azimuth REAL " \
+             ");"
+    cursor.execute(Drop)
+    cursor.execute(Create)
+    conn.commit()
+
+    for index, row in weather_table.iterrows():
+        str = ""
+        last = weather_table.columns[-1]
+        for column in weather_table.columns:
+            if column == last:
+                str += f"'{row[column]}'"
+            else:
+                str+= f"'{row[column]}'" + ", "
+        Insert = f"""INSERT INTO weather VALUES(
+        {str}
+        );
+        """
+        print(Insert)
+        cursor.execute(Insert)
+    conn.commit()
+    conn.close()
 
