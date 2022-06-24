@@ -49,7 +49,7 @@ def get_cab_temps_s2(room, start_date):
 
 if __name__ == '__main__':
     threading.Thread(target=lambda: app.run(debug=True, use_reloader=False)).start()
-    #dataloader.period_load()
+    dataloader.period_load()
 
 
 
