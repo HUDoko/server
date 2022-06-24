@@ -21,13 +21,21 @@ def get_cabinet_temp(room, start_date, end_date):
     print(select)
     answer = select_execute(select)
 
+
+
     result = {
         "dates": [],
-        "temp": []
+        "temp": [],
+        "anomaly" : []
     }
     for row in answer:
         result['dates'].append(row[0])
         result['temp'].append(row[1])
+        #print(row[0])
+        if (row[0]) == '2021-02-19 18:00:':
+            result['anomaly'].append("battery")
+        else:
+            result['anomaly'].append("battery")
     return result
 
 
@@ -70,6 +78,7 @@ def get_all_cab_temp(count=10):
     conn.close()
     return result
 
+
 #получить json для всех кабинетов за период времени
 def get_all_cab_temp_by_date(start_date = None, end_date = None):
     conn = get_connection()
@@ -93,6 +102,58 @@ def get_all_cab_temp_by_date(start_date = None, end_date = None):
     else:
         if not (end_date is None):
             where += f' WHERE date_time < "{end_date}"'
+    select += where
+
+    order = "ORDER BY date_time;"
+    select += order
+    print(select)
+    sql_res = cursor.execute(select).fetchall()
+    result = {}
+    for row in sql_res:
+        if not result.keys().__contains__(row[3]):
+            result[row[3]] = {
+            'dates': [],
+            'temp':
+                {
+                    'wall': [],
+                    'bat': []
+                },
+            }
+        result[row[3]]['dates'].append(row[0])
+        result[row[3]]['temp'][row[2]].append(row[1])
+        result[row[3]]['temp'][not_wb(row[2])].append(None)
+
+    for key in result.keys():
+        result[key]['temp']['wall'] = avg_fill(result[key]['temp']['wall'])
+        result[key]['temp']['bat'] = avg_fill(result[key]['temp']['bat'])
+
+    return result
+
+
+#получить json для всех кабинетов за период времени
+def get_one_cab_temp_by_date(cabinet_name, start_date = None, end_date = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    select = f"""
+    SELECT date_time,
+       "temp",      
+       type,
+       cab_name
+    FROM temperature    
+    LEFT JOIN  
+    cabinets on temperature.CAB_ID == cabinets.CAB_ID  
+    
+    """
+
+    # Формирование Where для SQL-запроса
+    where = f"WHERE cabinets.cab_name == '{cabinet_name}' "
+    if not (start_date is None):
+        where += f' AND date_time > "{start_date}" '
+        if not (end_date is None):
+            where += f' AND date_time < "{end_date}"'
+    else:
+        if not (end_date is None):
+            where += f' AND date_time < "{end_date}"'
     select += where
 
     order = "ORDER BY date_time;"

@@ -1,9 +1,76 @@
+import numpy as np
+
 import database
 import DateConvertor as dc
 import SensorInfo as si
 import time
 import pandas as pd
 import weather_load as wi
+
+
+def load_from_csv():
+    filepath = "big_table.csv"
+    sensor_info = {
+        "cabinet_210_bat": "210_bat_temp",
+        "cabinet_210_wall": "210_wall_temp",
+        "cabinet_316_bat": "316_bat_temp",
+        "cabinet_316_wall": "316_wall_temp",
+        "cabinet_412a_bat": "412a_bat_temp",
+        "cabinet_412a_wall": "412a_wall_temp",
+        "cabinet_420_bat": "420_bat_temp",
+        "cabinet_420_wall": "420_wall_temp",
+        "cabinet_219_bat": "219_bat_temp",
+        "cabinet_219_wall": "219_wall_temp"
+    }
+    weather_table = pd.read_csv(filepath, parse_dates=["date_time"], sep=';', index_col="date_time")
+    weather_table = weather_table[['210_bat_temp', '210_wall_temp', '316_bat_temp',
+                                   '316_wall_temp', '412a_bat_temp', '412a_wall_temp',
+                                   '420_bat_temp', '420_wall_temp', '219_bat_temp', '219_wall_temp']]
+    conn = database.get_connection()
+    cursor = conn.cursor()
+
+    Drop = "DROP TABLE IF EXISTS cabinets;"
+    Create = "CREATE TABLE IF NOT EXISTS cabinets (CAB_ID INTEGER UNIQUE, full_name text, type text, cab_name text, link text);"
+    cursor.execute(Drop)
+    cursor.execute(Create)
+    conn.commit()
+
+    Drop = "DROP TABLE IF EXISTS temperature;"
+    cursor.execute(Drop)
+    Create = "CREATE TABLE IF NOT EXISTS temperature (date_time DATETIME , temp real, CAB_ID INTEGER);"
+    cursor.execute(Create)
+
+
+    for sensor in sensor_info.keys():
+        is_wall = "bat"
+        if sensor.find('wall') != -1:
+            is_wall = 'wall'
+        sensor_num = sensor.split('_')[1]
+        CAB_ID = get_next_cab_id()
+        Insert = "INSERT INTO cabinets VALUES ({}, '{}', '{}', '{}', '{}');".format(CAB_ID, sensor, is_wall, sensor_num,
+                                                                                    sensor_info[sensor])
+        print(Insert)
+        cursor.execute(Insert)
+        conn.commit()
+        cabinet = weather_table[sensor_info[sensor]]
+        #dc.df_add_datetime(cabinet)
+        #cabinet = cabinet.drop(labels=['date', 'time'], axis=1)
+        # print(cab_210)
+        # Drop = "DROP TABLE IF EXISTS {};".format(sensor)
+        # cursor.execute(Drop)
+        # Create = "CREATE TABLE IF NOT EXISTS {} (date_time DATETIME , temp real);".format(sensor)
+        # cursor.execute(Create)
+        # print(Create)
+
+
+        for index in cabinet.index:
+            if not np.isnan(cabinet[index]):
+                Insert = "INSERT INTO temperature  VALUES ('{}', {}, {});".format(index, cabinet[index] , CAB_ID)
+                cursor.execute(Insert)
+
+        conn.commit()
+    conn.close()
+
 
 
 def period_load(pause=120):
@@ -14,7 +81,7 @@ def period_load(pause=120):
 
 def load_sensor_info():
     print("start_Load")
-    if database.is_table_exist('cabinets'):
+    if database.is_table_exist('cabinets') and  database.is_table_exist('temperature'):
         select = """SELECT CAB_ID,
               full_name,
               type,
@@ -82,6 +149,10 @@ def fill_empty_database():
     cursor.execute(Create)
     conn.commit()
 
+    Drop = "DROP TABLE IF EXISTS temperature;"
+    cursor.execute(Drop)
+    Create = "CREATE TABLE IF NOT EXISTS temperature (date_time DATETIME , temp real, CAB_ID INTEGER);"
+
     for sensor in sensor_info.keys():
         is_wall = "bat"
         if sensor.find('wall') != -1:
@@ -103,9 +174,7 @@ def fill_empty_database():
         # cursor.execute(Create)
         # print(Create)
 
-        Drop = "DROP TABLE IF EXISTS {};".format(sensor)
-        cursor.execute(Drop)
-        Create = "CREATE TABLE IF NOT EXISTS temperature (date_time DATETIME , temp real, CAB_ID INTEGER);"
+
         cursor.execute(Create)
 
         for index, row in cabinet.iterrows():
